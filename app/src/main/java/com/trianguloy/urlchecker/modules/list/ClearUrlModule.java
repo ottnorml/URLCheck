@@ -377,7 +377,8 @@ class ClearUrlDialog extends AModuleDialog {
         var decoded = result.toString();
         
         // If the result doesn't look like a URL (no protocol, no path separator),
-        // try Base64 decoding
+        // try Base64 decoding on the original text (not the URL-decoded result,
+        // since Base64 strings would be corrupted by URL decoding)
         if (!decoded.matches("^https?://.*") && !decoded.contains("/")) {
             var base64Decoded = UrlUtils.decodeBase64(text);
             if (base64Decoded != null) {

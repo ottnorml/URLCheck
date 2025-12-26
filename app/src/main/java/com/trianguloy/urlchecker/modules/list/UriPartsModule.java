@@ -131,6 +131,8 @@ class UriPartsDialog extends AModuleDialog {
                 });
                 
                 // Try to decode as Base64 and show if successful
+                // Note: No delete button for decoded value since it's informational only
+                // Users can click on it to use as URL, or delete the parent parameter
                 var base64Decoded = UrlUtils.decodeBase64(decodedValue);
                 if (base64Decoded != null && !base64Decoded.equals(decodedValue)) {
                     addPart("  ↳ (base64)", base64Decoded, queries, null);
