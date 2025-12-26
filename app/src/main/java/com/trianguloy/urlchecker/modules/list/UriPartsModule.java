@@ -50,6 +50,8 @@ public class UriPartsModule extends AModuleData {
 
 class UriPartsDialog extends AModuleDialog {
 
+    private static final String BASE64_DECODED_PREFIX = "  ↳ (base64)";
+    
     private LinearLayout box;
     private final List<String> expandedGroups = new ArrayList<>();
 
@@ -135,7 +137,7 @@ class UriPartsDialog extends AModuleDialog {
                 // Users can click on it to use as URL, or delete the parent parameter
                 var base64Decoded = UrlUtils.decodeBase64(decodedValue);
                 if (base64Decoded != null && !base64Decoded.equals(decodedValue)) {
-                    addPart("  ↳ (base64)", base64Decoded, queries, null);
+                    addPart(BASE64_DECODED_PREFIX, base64Decoded, queries, null);
                 }
             }
         }
