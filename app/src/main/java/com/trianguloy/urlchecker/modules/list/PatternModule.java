@@ -20,6 +20,7 @@ import com.trianguloy.urlchecker.utilities.methods.AndroidUtils;
 import com.trianguloy.urlchecker.utilities.methods.Inflater;
 import com.trianguloy.urlchecker.utilities.methods.JavaUtils;
 import com.trianguloy.urlchecker.utilities.methods.JavaUtils.Function;
+import com.trianguloy.urlchecker.utilities.methods.UrlUtils;
 import com.trianguloy.urlchecker.utilities.wrappers.RegexFix;
 
 import org.json.JSONArray;

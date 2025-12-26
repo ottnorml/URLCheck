@@ -21,6 +21,7 @@ import com.trianguloy.urlchecker.url.UrlData;
 import com.trianguloy.urlchecker.utilities.generics.GenericPref;
 import com.trianguloy.urlchecker.utilities.methods.AndroidUtils;
 import com.trianguloy.urlchecker.utilities.methods.JavaUtils.Function;
+import com.trianguloy.urlchecker.utilities.methods.UrlUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
