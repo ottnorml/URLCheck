@@ -118,8 +118,9 @@ class UriPartsDialog extends AModuleDialog {
             var queries = addGroup("Parameters", parameters.size(), uri.buildUpon().query(null));
             for (var i = 0; i < parameters.size(); i++) {
                 int removeI = i;
+                var decodedValue = UrlUtils.decode(parameters.get(i).mValue);
                 // append the parameter
-                addPart(UrlUtils.decode(parameters.get(i).mParameter), UrlUtils.decode(parameters.get(i).mValue), queries, () -> {
+                addPart(UrlUtils.decode(parameters.get(i).mParameter), decodedValue, queries, () -> {
                     // generate same url but without this parameter
                     var builder = uri.buildUpon();
                     builder.query(null);
@@ -128,6 +129,12 @@ class UriPartsDialog extends AModuleDialog {
                     }
                     return builder.build().toString();
                 });
+                
+                // Try to decode as Base64 and show if successful
+                var base64Decoded = UrlUtils.decodeBase64(decodedValue);
+                if (base64Decoded != null && !base64Decoded.equals(decodedValue)) {
+                    addPart("  ↳ (base64)", base64Decoded, queries, null);
+                }
             }
         }
 

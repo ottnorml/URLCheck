@@ -365,6 +365,7 @@ class ClearUrlDialog extends AModuleDialog {
     /**
      * Hopefully the same as javascript's decodeURIComponent
      * Idea from https://stackoverflow.com/a/6926987, but using own implementation
+     * Also attempts Base64 decoding if the result doesn't look like a URL
      */
     private static String decodeURIComponent(String text) throws UnsupportedEncodingException {
         var result = new StringBuilder();
@@ -373,7 +374,18 @@ class ClearUrlDialog extends AModuleDialog {
             if (result.length() != 0) result.append('+');
             result.append(decode(part));
         }
-        return result.toString();
+        var decoded = result.toString();
+        
+        // If the result doesn't look like a URL (no protocol, no path separator),
+        // try Base64 decoding
+        if (!decoded.matches("^https?://.*") && !decoded.contains("/")) {
+            var base64Decoded = UrlUtils.decodeBase64(text);
+            if (base64Decoded != null) {
+                return base64Decoded;
+            }
+        }
+        
+        return decoded;
     }
 
     /**
