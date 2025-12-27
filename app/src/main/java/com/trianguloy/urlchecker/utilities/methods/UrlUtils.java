@@ -7,6 +7,7 @@ import android.net.Uri;
 
 import com.trianguloy.urlchecker.utilities.wrappers.IntentApp;
 
+import java.net.URI;
 import java.net.URLDecoder;
 import java.util.Base64;
 
@@ -52,43 +53,60 @@ public interface UrlUtils {
     }
 
     /**
-     * Checks if a string contains mostly valid URL characters.
-     * Used to validate if a Base64 decoded result is meaningful URL text.
-     * Supports international characters valid in URLs per RFC 3986 and IRI (RFC 3987).
+     * Checks if a string contains mostly valid text/URL characters using Java built-in standards.
+     * Uses Character class methods and URI parsing to validate content.
+     * Rejects strings with too many control characters or invalid byte sequences.
      */
     static boolean isValidText(String text) {
         if (text == null || text.isEmpty()) return false;
+        
+        // First, try to parse as URI - if successful, it's definitely valid URL text
+        try {
+            new URI(text);
+            return true; // Valid URI, accept it
+        } catch (Exception e) {
+            // Not a complete URI, continue with character validation
+        }
+        
+        // Validate character by character using standard Java Character class
         int validCount = 0;
         int totalCount = text.length();
         
         for (char c : text.toCharArray()) {
-            // Consider valid URL characters:
-            // 1. Unreserved characters (RFC 3986): A-Z, a-z, 0-9, -, ., _, ~
-            // 2. Reserved characters valid in URLs: : / ? # [ ] @ ! $ & ' ( ) * + , ; =
-            // 3. Percent sign (for percent-encoding like %20)
-            // 4. Common whitespace characters (space, newline, tab, carriage return)
-            // 5. International characters: letters and digits from any script (for IDN/IRI)
-            //    Note: Character.isLetter/isDigit include non-ASCII chars like ñ, 中, あ, ٠
+            // Use built-in Java standards for character validation:
+            // 1. Character.isLetterOrDigit() - covers all Unicode letters and digits
+            // 2. Character.isWhitespace() - covers all Unicode whitespace
+            // 3. Character.isISOControl() - detects invalid control characters
+            // 4. Check for common URL punctuation using Character.getType()
             
-            if ((c >= 'A' && c <= 'Z') || // Uppercase ASCII letters
-                (c >= 'a' && c <= 'z') || // Lowercase ASCII letters
-                (c >= '0' && c <= '9') || // ASCII digits
-                c == '-' || c == '.' || c == '_' || c == '~' || // Unreserved
-                c == ':' || c == '/' || c == '?' || c == '#' || // URL structure
-                c == '[' || c == ']' || c == '@' || // URL components
-                c == '!' || c == '$' || c == '&' || c == '\'' || // Sub-delimiters
-                c == '(' || c == ')' || c == '*' || c == '+' || // Sub-delimiters
-                c == ',' || c == ';' || c == '=' || // Sub-delimiters
-                c == '%' || // Percent-encoding
-                c == ' ' || c == '\n' || c == '\r' || c == '\t' || // Whitespace
-                Character.isLetter(c) || // International letters beyond ASCII (IDN/IRI)
-                Character.isDigit(c)) { // International digits beyond ASCII
+            if (Character.isLetterOrDigit(c) || // Letters and digits (ASCII + international)
+                Character.isWhitespace(c) || // Whitespace (space, tab, newline, etc.)
+                !Character.isISOControl(c) && isPrintableOrURLChar(c)) { // Printable/URL chars
                 validCount++;
             }
         }
         
-        // Consider valid if at least 80% of characters are URL-valid
+        // Consider valid if at least 80% of characters are valid
         return (validCount * 100.0 / totalCount) >= 80.0;
     }
+    
+    /**
+     * Helper method to check if a character is a printable or URL special character.
+     * Uses Character.getType() to check standard Unicode categories.
+     */
+    static boolean isPrintableOrURLChar(char c) {
+        int type = Character.getType(c);
+        // Accept various printable Unicode character categories
+        return type == Character.DASH_PUNCTUATION ||
+               type == Character.START_PUNCTUATION ||
+               type == Character.END_PUNCTUATION ||
+               type == Character.CONNECTOR_PUNCTUATION ||
+               type == Character.OTHER_PUNCTUATION ||
+               type == Character.MATH_SYMBOL ||
+               type == Character.CURRENCY_SYMBOL ||
+               type == Character.MODIFIER_SYMBOL ||
+               type == Character.OTHER_SYMBOL ||
+               type == Character.INITIAL_QUOTE_PUNCTUATION ||
+               type == Character.FINAL_QUOTE_PUNCTUATION;
     }
 }
