@@ -5,6 +5,7 @@ import static com.trianguloy.urlchecker.utilities.methods.JavaUtils.sUTF_8;
 import android.content.Intent;
 import android.net.Uri;
 
+import com.trianguloy.urlchecker.utilities.methods.AndroidUtils;
 import com.trianguloy.urlchecker.utilities.wrappers.IntentApp;
 
 import java.net.URI;
@@ -98,16 +99,21 @@ public interface UrlUtils {
      * Helper method to check if a character is emoji-related.
      * Emojis often use surrogate pairs (for characters beyond the Basic Multilingual Plane)
      * and emoji modifiers (skin tone, gender, etc.).
-     * Uses Character.getType() to check for emoji-related Unicode categories.
+     * Uses Character methods and getType() to check for emoji-related Unicode categories.
      */
     static boolean isEmojiRelated(char c) {
+        // Check if it's a surrogate (high or low) - used by emoji beyond BMP
+        if (Character.isSurrogate(c)) {
+            return true;
+        }
+        
+        // Check for other emoji-related character types
         int type = Character.getType(c);
-        // Emoji characters can be in these categories:
-        // - SURROGATE: High and low surrogates for emoji beyond BMP (U+10000+)
+        // Emoji characters can also be in these categories:
         // - FORMAT: Emoji modifiers like skin tone, ZWJ (Zero Width Joiner)
         // - NON_SPACING_MARK: Some emoji variation selectors
-        return type == Character.SURROGATE ||
-               type == Character.FORMAT ||
+        // - ENCLOSING_MARK: Additional emoji modifiers
+        return type == Character.FORMAT ||
                type == Character.NON_SPACING_MARK ||
                type == Character.ENCLOSING_MARK;
     }
