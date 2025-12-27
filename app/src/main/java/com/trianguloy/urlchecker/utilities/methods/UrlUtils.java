@@ -61,19 +61,18 @@ public interface UrlUtils {
         int validCount = 0;
         int totalCount = text.length();
         
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            
+        for (char c : text.toCharArray()) {
             // Consider valid URL characters:
             // 1. Unreserved characters (RFC 3986): A-Z, a-z, 0-9, -, ., _, ~
             // 2. Reserved characters valid in URLs: : / ? # [ ] @ ! $ & ' ( ) * + , ; =
             // 3. Percent sign (for percent-encoding like %20)
             // 4. Common whitespace characters (space, newline, tab, carriage return)
             // 5. International characters: letters and digits from any script (for IDN/IRI)
+            //    Note: Character.isLetter/isDigit include non-ASCII chars like ñ, 中, あ, ٠
             
-            if ((c >= 'A' && c <= 'Z') || // Uppercase letters
-                (c >= 'a' && c <= 'z') || // Lowercase letters
-                (c >= '0' && c <= '9') || // Digits
+            if ((c >= 'A' && c <= 'Z') || // Uppercase ASCII letters
+                (c >= 'a' && c <= 'z') || // Lowercase ASCII letters
+                (c >= '0' && c <= '9') || // ASCII digits
                 c == '-' || c == '.' || c == '_' || c == '~' || // Unreserved
                 c == ':' || c == '/' || c == '?' || c == '#' || // URL structure
                 c == '[' || c == ']' || c == '@' || // URL components
@@ -82,13 +81,14 @@ public interface UrlUtils {
                 c == ',' || c == ';' || c == '=' || // Sub-delimiters
                 c == '%' || // Percent-encoding
                 c == ' ' || c == '\n' || c == '\r' || c == '\t' || // Whitespace
-                Character.isLetter(c) || // International letters (IDN/IRI support)
-                Character.isDigit(c)) { // International digits
+                Character.isLetter(c) || // International letters beyond ASCII (IDN/IRI)
+                Character.isDigit(c)) { // International digits beyond ASCII
                 validCount++;
             }
         }
         
         // Consider valid if at least 80% of characters are URL-valid
         return (validCount * 100.0 / totalCount) >= 80.0;
+    }
     }
 }
