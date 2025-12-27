@@ -54,20 +54,39 @@ public interface UrlUtils {
     /**
      * Checks if a string contains mostly valid, printable characters.
      * Used to validate if a Base64 decoded result is meaningful text.
+     * Supports international (non-ASCII) characters for worldwide web compatibility.
      */
     static boolean isValidText(String text) {
         if (text == null || text.isEmpty()) return false;
-        int printableCount = 0;
+        int validCount = 0;
         int totalCount = text.length();
         
         for (char c : text.toCharArray()) {
-            // Consider printable: standard ASCII printable, common control chars (newline, tab), and extended unicode
-            if ((c >= 32 && c < 127) || c == '\n' || c == '\r' || c == '\t' || c > 127) {
-                printableCount++;
+            // Consider valid:
+            // - Standard ASCII printable characters (space to ~)
+            // - Common whitespace control chars
+            // - International characters: letters, digits, marks, symbols, punctuation
+            // - Common URL/text characters like spaces, currency symbols, etc.
+            if ((c >= 32 && c < 127) || // ASCII printable
+                c == '\n' || c == '\r' || c == '\t' || // Whitespace
+                Character.isLetter(c) || // International letters (e.g., ñ, ö, 中, あ)
+                Character.isDigit(c) || // International digits
+                Character.isWhitespace(c) || // International whitespace
+                Character.getType(c) == Character.CURRENCY_SYMBOL || // Currency symbols
+                Character.getType(c) == Character.CONNECTOR_PUNCTUATION || // Connectors like _
+                Character.getType(c) == Character.DASH_PUNCTUATION || // Dashes
+                Character.getType(c) == Character.START_PUNCTUATION || // Opening brackets
+                Character.getType(c) == Character.END_PUNCTUATION || // Closing brackets
+                Character.getType(c) == Character.INITIAL_QUOTE_PUNCTUATION ||
+                Character.getType(c) == Character.FINAL_QUOTE_PUNCTUATION ||
+                Character.getType(c) == Character.OTHER_PUNCTUATION || // Punctuation like !, ?
+                Character.getType(c) == Character.MATH_SYMBOL || // Math symbols
+                Character.getType(c) == Character.OTHER_SYMBOL) { // Other symbols
+                validCount++;
             }
         }
         
-        // Consider valid if at least 80% of characters are printable
-        return (printableCount * 100.0 / totalCount) >= 80.0;
+        // Consider valid if at least 80% of characters are valid
+        return (validCount * 100.0 / totalCount) >= 80.0;
     }
 }
