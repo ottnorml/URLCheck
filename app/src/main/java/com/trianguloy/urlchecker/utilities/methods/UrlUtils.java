@@ -52,41 +52,43 @@ public interface UrlUtils {
     }
 
     /**
-     * Checks if a string contains mostly valid, printable characters.
-     * Used to validate if a Base64 decoded result is meaningful text.
-     * Supports international (non-ASCII) characters for worldwide web compatibility.
+     * Checks if a string contains mostly valid URL characters.
+     * Used to validate if a Base64 decoded result is meaningful URL text.
+     * Supports international characters valid in URLs per RFC 3986 and IRI (RFC 3987).
      */
     static boolean isValidText(String text) {
         if (text == null || text.isEmpty()) return false;
         int validCount = 0;
         int totalCount = text.length();
         
-        for (char c : text.toCharArray()) {
-            // Consider valid:
-            // - Standard ASCII printable characters (space to ~)
-            // - Common whitespace control chars
-            // - International characters: letters, digits, marks, symbols, punctuation
-            // - Common URL/text characters like spaces, currency symbols, etc.
-            if ((c >= 32 && c < 127) || // ASCII printable
-                c == '\n' || c == '\r' || c == '\t' || // Whitespace
-                Character.isLetter(c) || // International letters (e.g., ñ, ö, 中, あ)
-                Character.isDigit(c) || // International digits
-                Character.isWhitespace(c) || // International whitespace
-                Character.getType(c) == Character.CURRENCY_SYMBOL || // Currency symbols
-                Character.getType(c) == Character.CONNECTOR_PUNCTUATION || // Connectors like _
-                Character.getType(c) == Character.DASH_PUNCTUATION || // Dashes
-                Character.getType(c) == Character.START_PUNCTUATION || // Opening brackets
-                Character.getType(c) == Character.END_PUNCTUATION || // Closing brackets
-                Character.getType(c) == Character.INITIAL_QUOTE_PUNCTUATION ||
-                Character.getType(c) == Character.FINAL_QUOTE_PUNCTUATION ||
-                Character.getType(c) == Character.OTHER_PUNCTUATION || // Punctuation like !, ?
-                Character.getType(c) == Character.MATH_SYMBOL || // Math symbols
-                Character.getType(c) == Character.OTHER_SYMBOL) { // Other symbols
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            
+            // Consider valid URL characters:
+            // 1. Unreserved characters (RFC 3986): A-Z, a-z, 0-9, -, ., _, ~
+            // 2. Reserved characters valid in URLs: : / ? # [ ] @ ! $ & ' ( ) * + , ; =
+            // 3. Percent sign (for percent-encoding like %20)
+            // 4. Common whitespace characters (space, newline, tab, carriage return)
+            // 5. International characters: letters and digits from any script (for IDN/IRI)
+            
+            if ((c >= 'A' && c <= 'Z') || // Uppercase letters
+                (c >= 'a' && c <= 'z') || // Lowercase letters
+                (c >= '0' && c <= '9') || // Digits
+                c == '-' || c == '.' || c == '_' || c == '~' || // Unreserved
+                c == ':' || c == '/' || c == '?' || c == '#' || // URL structure
+                c == '[' || c == ']' || c == '@' || // URL components
+                c == '!' || c == '$' || c == '&' || c == '\'' || // Sub-delimiters
+                c == '(' || c == ')' || c == '*' || c == '+' || // Sub-delimiters
+                c == ',' || c == ';' || c == '=' || // Sub-delimiters
+                c == '%' || // Percent-encoding
+                c == ' ' || c == '\n' || c == '\r' || c == '\t' || // Whitespace
+                Character.isLetter(c) || // International letters (IDN/IRI support)
+                Character.isDigit(c)) { // International digits
                 validCount++;
             }
         }
         
-        // Consider valid if at least 80% of characters are valid
+        // Consider valid if at least 80% of characters are URL-valid
         return (validCount * 100.0 / totalCount) >= 80.0;
     }
 }
