@@ -4,6 +4,7 @@ import static com.trianguloy.urlchecker.utilities.methods.JavaUtils.sUTF_8;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Base64;
 
 import com.trianguloy.urlchecker.utilities.methods.AndroidUtils;
 import com.trianguloy.urlchecker.utilities.wrappers.IntentApp;
@@ -11,7 +12,6 @@ import com.trianguloy.urlchecker.utilities.wrappers.IntentApp;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.util.Base64;
 
 /** Static utilities related to urls */
 public interface UrlUtils {
@@ -37,11 +37,12 @@ public interface UrlUtils {
     /** 
      * Attempts to decode a Base64 string. Returns the decoded string if successful,
      * or null if decoding failed or result is not valid text.
+     * Uses android.util.Base64 for Android compatibility.
      */
     static String decodeBase64(String string) {
         if (string == null || string.isEmpty()) return null;
         try {
-            byte[] decoded = Base64.getDecoder().decode(string);
+            byte[] decoded = Base64.decode(string, Base64.DEFAULT);
             String result = new String(decoded, sUTF_8);
             // Check if result contains mostly printable characters (basic validation)
             if (isValidText(result)) {
@@ -59,71 +60,81 @@ public interface UrlUtils {
      * Uses Character class methods and URI parsing to validate content.
      * Rejects strings with too many control characters or invalid byte sequences.
      * Supports emoji characters including those using surrogate pairs.
+     * Properly handles Unicode code points beyond the Basic Multilingual Plane.
      */
     static boolean isValidText(String text) {
         if (text == null || text.isEmpty()) return false;
         
         // First, try to parse as URI - if successful, it's definitely valid URL text
-        try {
-            new URI(text);
-            return true; // Valid URI, accept it
-        } catch (URISyntaxException e) {
-            // Not a complete URI, continue with character validation
+        // Optimize: use startsWith instead of matches for common URL patterns
+        if (text.startsWith("http://") || text.startsWith("https://") || text.startsWith("ftp://")) {
+            try {
+                new URI(text);
+                return true; // Valid URI, accept it
+            } catch (URISyntaxException e) {
+                // Continue with character validation
+            }
         }
         
-        // Validate character by character using standard Java Character class
+        // Validate using code points to properly handle surrogate pairs
         int validCount = 0;
-        int totalCount = text.length();
+        int totalCount = 0;
         
-        for (char c : text.toCharArray()) {
+        // Iterate through code points instead of chars to handle surrogate pairs correctly
+        for (int i = 0; i < text.length(); ) {
+            int codePoint = text.codePointAt(i);
+            totalCount++;
+            
             // Use built-in Java standards for character validation:
             // - Character.isLetterOrDigit() covers all Unicode letters and digits
             // - Character.isWhitespace() covers all Unicode whitespace
             // - Character.isISOControl() detects invalid control characters
             // - isPunctuationOrSymbol() checks common URL punctuation using Character.getType()
-            // - Emoji support: surrogate pairs and emoji modifiers
+            // - isEmojiRelated() checks emoji-related code points
             
-            if (Character.isLetterOrDigit(c) || // Letters and digits (ASCII + international)
-                Character.isWhitespace(c) || // Whitespace (space, tab, newline, etc.)
-                (isPunctuationOrSymbol(c) && !Character.isISOControl(c)) || // Punctuation/symbols but not control chars
-                isEmojiRelated(c)) { // Emoji characters (surrogate pairs, modifiers, etc.)
+            if (Character.isLetterOrDigit(codePoint) || // Letters and digits (ASCII + international)
+                Character.isWhitespace(codePoint) || // Whitespace (space, tab, newline, etc.)
+                (isPunctuationOrSymbol(codePoint) && !Character.isISOControl(codePoint)) || // Punctuation/symbols but not control chars
+                isEmojiRelated(codePoint)) { // Emoji characters (surrogate pairs, modifiers, etc.)
                 validCount++;
             }
+            
+            // Move to next code point (handles surrogate pairs)
+            i += Character.charCount(codePoint);
         }
         
         // Consider valid if at least 80% of characters are valid
-        return (validCount * 100.0 / totalCount) >= 80.0;
+        return totalCount > 0 && (validCount * 100.0 / totalCount) >= 80.0;
     }
     
     /**
-     * Helper method to check if a character is emoji-related.
-     * Emojis often use surrogate pairs (for characters beyond the Basic Multilingual Plane)
+     * Helper method to check if a code point is emoji-related.
+     * Emojis often use code points beyond the Basic Multilingual Plane
      * and emoji modifiers (skin tone, gender, etc.).
      * Uses Character methods and getType() to check for emoji-related Unicode categories.
      */
-    static boolean isEmojiRelated(char c) {
-        // Check if it's a surrogate (high or low) - used by emoji beyond BMP
-        if (Character.isSurrogate(c)) {
-            return true;
-        }
+    static boolean isEmojiRelated(int codePoint) {
+        // Get the type of the code point
+        int type = Character.getType(codePoint);
         
-        // Check for other emoji-related character types
-        int type = Character.getType(c);
-        // Emoji characters can also be in these categories:
+        // Emoji characters can be in these categories:
+        // - SURROGATE is handled by code point iteration
         // - FORMAT: Emoji modifiers like skin tone, ZWJ (Zero Width Joiner)
         // - NON_SPACING_MARK: Some emoji variation selectors
         // - ENCLOSING_MARK: Additional emoji modifiers
+        // - OTHER_SYMBOL: Many basic emojis fall into this category
         return type == Character.FORMAT ||
                type == Character.NON_SPACING_MARK ||
-               type == Character.ENCLOSING_MARK;
+               type == Character.ENCLOSING_MARK ||
+               type == Character.OTHER_SYMBOL;
     }
     
     /**
-     * Helper method to check if a character is punctuation or symbol commonly found in URLs.
+     * Helper method to check if a code point is punctuation or symbol commonly found in URLs.
      * Uses Character.getType() to check standard Unicode categories.
      */
-    static boolean isPunctuationOrSymbol(char c) {
-        int type = Character.getType(c);
+    static boolean isPunctuationOrSymbol(int codePoint) {
+        int type = Character.getType(codePoint);
         // Accept various punctuation and symbol Unicode character categories
         return type == Character.DASH_PUNCTUATION ||
                type == Character.START_PUNCTUATION ||
@@ -133,7 +144,6 @@ public interface UrlUtils {
                type == Character.MATH_SYMBOL ||
                type == Character.CURRENCY_SYMBOL ||
                type == Character.MODIFIER_SYMBOL ||
-               type == Character.OTHER_SYMBOL ||
                type == Character.INITIAL_QUOTE_PUNCTUATION ||
                type == Character.FINAL_QUOTE_PUNCTUATION;
     }
