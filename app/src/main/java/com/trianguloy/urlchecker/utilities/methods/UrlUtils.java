@@ -118,15 +118,13 @@ public interface UrlUtils {
         int type = Character.getType(codePoint);
         
         // Emoji characters can be in these categories:
-        // - SURROGATE is handled by code point iteration
         // - FORMAT: Emoji modifiers like skin tone, ZWJ (Zero Width Joiner)
         // - NON_SPACING_MARK: Some emoji variation selectors
         // - ENCLOSING_MARK: Additional emoji modifiers
-        // - OTHER_SYMBOL: Many basic emojis fall into this category
+        // Note: OTHER_SYMBOL is handled by isPunctuationOrSymbol to avoid double-counting
         return type == Character.FORMAT ||
                type == Character.NON_SPACING_MARK ||
-               type == Character.ENCLOSING_MARK ||
-               type == Character.OTHER_SYMBOL;
+               type == Character.ENCLOSING_MARK;
     }
     
     /**
@@ -136,6 +134,7 @@ public interface UrlUtils {
     static boolean isPunctuationOrSymbol(int codePoint) {
         int type = Character.getType(codePoint);
         // Accept various punctuation and symbol Unicode character categories
+        // Includes OTHER_SYMBOL which covers both regular symbols and many emoji
         return type == Character.DASH_PUNCTUATION ||
                type == Character.START_PUNCTUATION ||
                type == Character.END_PUNCTUATION ||
@@ -144,6 +143,7 @@ public interface UrlUtils {
                type == Character.MATH_SYMBOL ||
                type == Character.CURRENCY_SYMBOL ||
                type == Character.MODIFIER_SYMBOL ||
+               type == Character.OTHER_SYMBOL ||
                type == Character.INITIAL_QUOTE_PUNCTUATION ||
                type == Character.FINAL_QUOTE_PUNCTUATION;
     }
