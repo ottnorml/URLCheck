@@ -8,6 +8,7 @@ import android.net.Uri;
 import com.trianguloy.urlchecker.utilities.wrappers.IntentApp;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.Base64;
 
@@ -64,7 +65,7 @@ public interface UrlUtils {
         try {
             new URI(text);
             return true; // Valid URI, accept it
-        } catch (java.net.URISyntaxException e) {
+        } catch (URISyntaxException e) {
             // Not a complete URI, continue with character validation
         }
         
