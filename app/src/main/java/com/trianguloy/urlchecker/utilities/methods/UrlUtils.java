@@ -64,7 +64,7 @@ public interface UrlUtils {
         try {
             new URI(text);
             return true; // Valid URI, accept it
-        } catch (Exception e) {
+        } catch (java.net.URISyntaxException e) {
             // Not a complete URI, continue with character validation
         }
         
@@ -74,14 +74,14 @@ public interface UrlUtils {
         
         for (char c : text.toCharArray()) {
             // Use built-in Java standards for character validation:
-            // 1. Character.isLetterOrDigit() - covers all Unicode letters and digits
-            // 2. Character.isWhitespace() - covers all Unicode whitespace
-            // 3. Character.isISOControl() - detects invalid control characters
-            // 4. Check for common URL punctuation using Character.getType()
+            // - Character.isLetterOrDigit() covers all Unicode letters and digits
+            // - Character.isWhitespace() covers all Unicode whitespace
+            // - Character.isISOControl() detects invalid control characters
+            // - isPunctuationOrSymbol() checks common URL punctuation using Character.getType()
             
             if (Character.isLetterOrDigit(c) || // Letters and digits (ASCII + international)
                 Character.isWhitespace(c) || // Whitespace (space, tab, newline, etc.)
-                !Character.isISOControl(c) && isPrintableOrURLChar(c)) { // Printable/URL chars
+                (isPunctuationOrSymbol(c) && !Character.isISOControl(c))) { // Punctuation/symbols but not control chars
                 validCount++;
             }
         }
@@ -91,12 +91,12 @@ public interface UrlUtils {
     }
     
     /**
-     * Helper method to check if a character is a printable or URL special character.
+     * Helper method to check if a character is punctuation or symbol commonly found in URLs.
      * Uses Character.getType() to check standard Unicode categories.
      */
-    static boolean isPrintableOrURLChar(char c) {
+    static boolean isPunctuationOrSymbol(char c) {
         int type = Character.getType(c);
-        // Accept various printable Unicode character categories
+        // Accept various punctuation and symbol Unicode character categories
         return type == Character.DASH_PUNCTUATION ||
                type == Character.START_PUNCTUATION ||
                type == Character.END_PUNCTUATION ||
