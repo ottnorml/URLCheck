@@ -57,6 +57,7 @@ public interface UrlUtils {
      * Checks if a string contains mostly valid text/URL characters using Java built-in standards.
      * Uses Character class methods and URI parsing to validate content.
      * Rejects strings with too many control characters or invalid byte sequences.
+     * Supports emoji characters including those using surrogate pairs.
      */
     static boolean isValidText(String text) {
         if (text == null || text.isEmpty()) return false;
@@ -79,16 +80,36 @@ public interface UrlUtils {
             // - Character.isWhitespace() covers all Unicode whitespace
             // - Character.isISOControl() detects invalid control characters
             // - isPunctuationOrSymbol() checks common URL punctuation using Character.getType()
+            // - Emoji support: surrogate pairs and emoji modifiers
             
             if (Character.isLetterOrDigit(c) || // Letters and digits (ASCII + international)
                 Character.isWhitespace(c) || // Whitespace (space, tab, newline, etc.)
-                (isPunctuationOrSymbol(c) && !Character.isISOControl(c))) { // Punctuation/symbols but not control chars
+                (isPunctuationOrSymbol(c) && !Character.isISOControl(c)) || // Punctuation/symbols but not control chars
+                isEmojiRelated(c)) { // Emoji characters (surrogate pairs, modifiers, etc.)
                 validCount++;
             }
         }
         
         // Consider valid if at least 80% of characters are valid
         return (validCount * 100.0 / totalCount) >= 80.0;
+    }
+    
+    /**
+     * Helper method to check if a character is emoji-related.
+     * Emojis often use surrogate pairs (for characters beyond the Basic Multilingual Plane)
+     * and emoji modifiers (skin tone, gender, etc.).
+     * Uses Character.getType() to check for emoji-related Unicode categories.
+     */
+    static boolean isEmojiRelated(char c) {
+        int type = Character.getType(c);
+        // Emoji characters can be in these categories:
+        // - SURROGATE: High and low surrogates for emoji beyond BMP (U+10000+)
+        // - FORMAT: Emoji modifiers like skin tone, ZWJ (Zero Width Joiner)
+        // - NON_SPACING_MARK: Some emoji variation selectors
+        return type == Character.SURROGATE ||
+               type == Character.FORMAT ||
+               type == Character.NON_SPACING_MARK ||
+               type == Character.ENCLOSING_MARK;
     }
     
     /**
