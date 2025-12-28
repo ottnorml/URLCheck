@@ -364,9 +364,47 @@ class ClearUrlDialog extends AModuleDialog {
     // ------------------- utils -------------------
 
     /**
-     * Hopefully the same as javascript's decodeURIComponent
-     * Idea from https://stackoverflow.com/a/6926987, but using own implementation
-     * Also attempts Base64 decoding if the result doesn't look like a URL
+     * Decodes a URI component string with enhanced Base64 detection.
+     * This method mimics JavaScript's decodeURIComponent behavior while adding
+     * intelligent Base64 decoding for tracking parameters.
+     * 
+     * <p>Decoding process:
+     * <ol>
+     *   <li><b>URL decoding:</b> Preserves '+' characters (common in Base64) while
+     *       decoding percent-encoded sequences (%XX)</li>
+     *   <li><b>Base64 detection heuristic:</b> If the decoded result doesn't start with
+     *       a URL protocol (http://, https://), attempts Base64 decoding on the original text</li>
+     *   <li><b>Validation:</b> Base64 decoded results are validated by {@link UrlUtils#isValidText(String)}
+     *       to ensure they represent actual text content, not binary data</li>
+     * </ol>
+     * 
+     * <p>Why decode original text for Base64:
+     * The original (non-URL-decoded) text is passed to Base64 decoder because:
+     * <ul>
+     *   <li>Base64 uses '+' character which URL decoding would convert to space</li>
+     *   <li>URL decoding would corrupt valid Base64 strings</li>
+     *   <li>Tracking parameters are typically Base64-encoded before URL encoding</li>
+     * </ul>
+     * 
+     * <p>Heuristic improvements:
+     * The method uses a simple but effective heuristic: if the URL-decoded result doesn't
+     * start with a protocol, it attempts Base64 decoding. The restrictive "/" check was
+     * removed because "/" is a valid Base64 character, and {@link UrlUtils#isValidText(String)}
+     * provides sufficient validation.
+     * 
+     * <p>Example use cases:
+     * <ul>
+     *   <li>Decoding redirect URLs: {@code ?url=aHR0cHM6Ly9leGFtcGxlLmNvbQ==} → {@code https://example.com}</li>
+     *   <li>Extracting tracking data: {@code ?data=dXNlcj1qb2huJnNvdXJjZT1lbWFpbA==} → {@code user=john&source=email}</li>
+     * </ul>
+     * 
+     * @param text the URI component string to decode (may be URL-encoded or Base64-encoded)
+     * @return the decoded string (URL-decoded, or Base64-decoded if heuristic triggers)
+     * @throws UnsupportedEncodingException if UTF-8 encoding is not supported (should never happen)
+     * @see UrlUtils#decodeBase64(String) for Base64 decoding with validation
+     * 
+     * @implNote Inspired by <a href="https://stackoverflow.com/a/6926987">Stack Overflow solution</a>
+     *           but with custom implementation and Base64 support
      */
     private static String decodeURIComponent(String text) throws UnsupportedEncodingException {
         var result = new StringBuilder();
@@ -377,11 +415,12 @@ class ClearUrlDialog extends AModuleDialog {
         }
         var decoded = result.toString();
         
-        // If the result doesn't look like a full URL (no protocol, no path separator),
+        // If the result doesn't look like a full URL (no protocol),
         // try Base64 decoding on the original text (not the URL-decoded result,
         // since Base64 strings would be corrupted by URL decoding).
-        // This heuristic works well for redirect parameters which typically contain full URLs.
-        if (!decoded.matches("^https?://.*") && !decoded.contains("/")) {
+        // Note: We removed the "/" check as it's too restrictive - "/" is valid in Base64.
+        // The isValidText() validation in decodeBase64 is sufficient to filter invalid results.
+        if (!decoded.matches("^https?://.*")) {
             var base64Decoded = UrlUtils.decodeBase64(text);
             if (base64Decoded != null) {
                 return base64Decoded;
