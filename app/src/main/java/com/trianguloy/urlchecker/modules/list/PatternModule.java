@@ -20,6 +20,7 @@ import com.trianguloy.urlchecker.utilities.methods.AndroidUtils;
 import com.trianguloy.urlchecker.utilities.methods.Inflater;
 import com.trianguloy.urlchecker.utilities.methods.JavaUtils;
 import com.trianguloy.urlchecker.utilities.methods.JavaUtils.Function;
+import com.trianguloy.urlchecker.utilities.methods.UrlUtils;
 import com.trianguloy.urlchecker.utilities.wrappers.RegexFix;
 
 import org.json.JSONArray;
@@ -131,6 +132,14 @@ class PatternDialog extends AModuleDialog {
                 if (data.optBoolean("encode")) {
                     url = URLEncoder.encode(url, sUTF_8);
                 }
+                
+                // decode based on decodeMethod (backward compatible)
+                var decodeMethod = data.optString("decodeMethod", "");
+                if ("base64".equals(decodeMethod)) {
+                    // Decode from base64 before matching
+                    var decoded = UrlUtils.decodeBase64(url);
+                    if (decoded != null) url = decoded;
+                }
 
                 // check matches:
                 // if 'regex' doesn't exist, the pattern can match (as everything)
@@ -179,9 +188,18 @@ class PatternDialog extends AModuleDialog {
                         // replace url
                         message.newUrl = regexFix.replaceAll(url, regexMatcher, replacement);
 
-                        // decode if required
+                        // decode if required (backward compatible with boolean decode field)
                         if (data.optBoolean("decode")) {
                             message.newUrl = decode(message.newUrl);
+                        } else if (data.has("decodeMethod")) {
+                            // Use new decodeMethod field
+                            var decodeMethodResult = data.optString("decodeMethod", "");
+                            if ("url".equals(decodeMethodResult) || "percent".equals(decodeMethodResult)) {
+                                message.newUrl = decode(message.newUrl);
+                            } else if ("base64".equals(decodeMethodResult)) {
+                                var decoded = UrlUtils.decodeBase64(message.newUrl);
+                                if (decoded != null) message.newUrl = decoded;
+                            }
                         }
 
                         // automatic? apply

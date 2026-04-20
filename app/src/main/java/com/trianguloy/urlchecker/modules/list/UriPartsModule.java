@@ -50,6 +50,8 @@ public class UriPartsModule extends AModuleData {
 
 class UriPartsDialog extends AModuleDialog {
 
+    private static final String BASE64_DECODED_PREFIX = "  ↳ (base64)";
+    
     private LinearLayout box;
     private final List<String> expandedGroups = new ArrayList<>();
 
@@ -118,8 +120,9 @@ class UriPartsDialog extends AModuleDialog {
             var queries = addGroup("Parameters", parameters.size(), uri.buildUpon().query(null));
             for (var i = 0; i < parameters.size(); i++) {
                 int removeI = i;
+                var decodedValue = UrlUtils.decode(parameters.get(i).mValue);
                 // append the parameter
-                addPart(UrlUtils.decode(parameters.get(i).mParameter), UrlUtils.decode(parameters.get(i).mValue), queries, () -> {
+                addPart(UrlUtils.decode(parameters.get(i).mParameter), decodedValue, queries, () -> {
                     // generate same url but without this parameter
                     var builder = uri.buildUpon();
                     builder.query(null);
@@ -128,6 +131,14 @@ class UriPartsDialog extends AModuleDialog {
                     }
                     return builder.build().toString();
                 });
+                
+                // Try to decode as Base64 and show if successful
+                // Note: No delete button for decoded value since it's informational only
+                // Users can click on it to use as URL, or delete the parent parameter
+                var base64Decoded = UrlUtils.decodeBase64(decodedValue);
+                if (base64Decoded != null && !base64Decoded.equals(decodedValue)) {
+                    addPart(BASE64_DECODED_PREFIX, base64Decoded, queries, null);
+                }
             }
         }
 
